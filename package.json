@@ -1,26 +1,35 @@
 {
-  "name": "my-app",
+  "name": "feud-exe",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "ws-server": "node server/websocket.js",
+    "dev-full": "concurrently \"npm run ws-server\" \"npm run dev\""
   },
   "dependencies": {
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "mongoose": "^8.0.0",
+    "ws": "^8.14.0",
+    "uuid": "^9.0.0",
+    "sonner": "^1.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/ws": "^8.5.0",
+    "@types/uuid": "^9.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "concurrently": "^8.2.0"
   }
 }
