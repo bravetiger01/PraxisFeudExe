@@ -73,8 +73,8 @@ const GameSchema = new mongoose.Schema({
   rounds: [RoundSchema],
   currentRoundIndex: { type: Number, default: 0 },
   currentTeamTurn: { type: String, default: '' },
-  gameState: { 
-    type: String, 
+  gameState: {
+    type: String,
     enum: ['waiting', 'playing', 'buzzer', 'answering', 'finished'],
     default: 'waiting'
   },
@@ -213,7 +213,7 @@ function generateGameCode() {
 }
 
 // WebSocket Server
-const wss = new WebSocket.Server({ 
+const wss = new WebSocket.Server({
   port: 8080,
   host: '0.0.0.0' // Listen on all network interfaces
 });
@@ -239,7 +239,7 @@ function broadcast(gameCode, message, excludeId) {
 async function createGame(hostId) {
   const gameCode = generateGameCode();
   const questions = getRandomQuestions();
-  
+
   const rounds = [
     {
       id: 'round1',
@@ -248,14 +248,14 @@ async function createGame(hostId) {
       currentQuestionIndex: 0
     },
     {
-      id: 'round2', 
+      id: 'round2',
       name: 'Round 2',
       questions: questions.slice(3, 6),
       currentQuestionIndex: 0
     },
     {
       id: 'round3',
-      name: 'Round 3', 
+      name: 'Round 3',
       questions: questions.slice(6, 9),
       currentQuestionIndex: 0
     }
@@ -279,7 +279,7 @@ async function createGame(hostId) {
 
   const game = new Game(gameData);
   await game.save();
-  
+
   return gameData;
 }
 
@@ -287,7 +287,7 @@ wss.on('connection', (ws) => {
   ws.id = uuidv4();
   ws.playerId = ws.id; // Store player ID for easy access
   clients.set(ws.id, ws);
-  
+
   console.log(`✅ Client connected: ${ws.id}`);
   console.log(`   Total clients: ${clients.size}`);
 
@@ -297,7 +297,7 @@ wss.on('connection', (ws) => {
       console.log(`📨 Received from ${ws.id}:`, message);
       console.log(`   Message type: ${message.type}`);
       console.log(`   Game code: ${message.gameCode || 'N/A'}`);
-      
+
       switch (message.type) {
         case 'host_create':
           try {
@@ -305,11 +305,11 @@ wss.on('connection', (ws) => {
             const game = await createGame(ws.id);
             ws.gameCode = game.code;
             ws.role = 'host';
-            
+
             // Load any existing teams for this game from database
             const existingTeams = await Team.find({ gameCode: game.code, isActive: true });
             const existingPlayers = await Player.find({ gameCode: game.code, isActive: true });
-            
+
             // Build teams with their players (if any exist)
             const teamsWithPlayers = existingTeams.map(team => ({
               id: team.id,
@@ -323,24 +323,24 @@ wss.on('connection', (ws) => {
                 isConnected: p.isConnected
               }))
             }));
-            
+
             // Update game with teams from database
             const gameWithTeams = {
               ...game,
               teams: teamsWithPlayers
             };
-            
+
             const response = {
               type: 'game_created',
               data: { game: gameWithTeams, hostId: ws.id }
             };
-            
+
             console.log('📤 Sending game_created response to:', ws.id);
             console.log('   Game code:', game.code);
             console.log('   WebSocket ready state:', ws.readyState);
-            
+
             ws.send(JSON.stringify(response));
-            
+
             console.log('✅ Game created: ${game.code} with ${existingTeams.length} teams from database');
           } catch (error) {
             console.error('❌ Create game error:', error);
@@ -356,7 +356,7 @@ wss.on('connection', (ws) => {
           try {
             console.log('Looking for game with code:', message.gameCode);
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               console.error('Game not found for code:', message.gameCode);
               ws.send(JSON.stringify({
@@ -373,7 +373,7 @@ wss.on('connection', (ws) => {
             // Load teams and players from separate collections
             const teams = await Team.find({ gameCode: message.gameCode, isActive: true });
             const players = await Player.find({ gameCode: message.gameCode, isActive: true });
-            
+
             // Build game object with teams and their players
             const teamsWithPlayers = teams.map(team => ({
               id: team.id,
@@ -396,7 +396,7 @@ wss.on('connection', (ws) => {
 
             ws.send(JSON.stringify({
               type: 'joined_game',
-              data: { 
+              data: {
                 game: gameWithTeams
               }
             }));
@@ -415,7 +415,7 @@ wss.on('connection', (ws) => {
           console.log('Received team management action:', message.data);
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               console.error('Game not found for code:', message.gameCode);
               ws.send(JSON.stringify({
@@ -427,7 +427,7 @@ wss.on('connection', (ws) => {
 
             const action = message.data;
             console.log('Processing action:', action.type);
-            
+
             switch (action.type) {
               case 'create_team':
                 const newTeamId = `team_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -445,7 +445,7 @@ wss.on('connection', (ws) => {
               case 'delete_team':
                 // Delete team from database
                 await Team.deleteOne({ id: action.teamId, gameCode: message.gameCode });
-                
+
                 // Move all players from this team back to waiting (set teamId to null)
                 await Player.updateMany(
                   { teamId: action.teamId, gameCode: message.gameCode },
@@ -459,7 +459,7 @@ wss.on('connection', (ws) => {
                 if (targetTeam) {
                   // Check if player already exists
                   let player = await Player.findOne({ id: action.playerId, gameCode: message.gameCode });
-                  
+
                   if (player) {
                     // Update existing player
                     player.teamId = action.teamId;
@@ -506,7 +506,7 @@ wss.on('connection', (ws) => {
                 if (teamToRename) {
                   teamToRename.name = action.newName;
                   await teamToRename.save();
-                  
+
                   // Update all players with this team's new name
                   await Player.updateMany(
                     { teamId: action.teamId, gameCode: message.gameCode },
@@ -520,7 +520,7 @@ wss.on('connection', (ws) => {
             // Fetch updated teams and players from database
             const teams = await Team.find({ gameCode: message.gameCode, isActive: true });
             const players = await Player.find({ gameCode: message.gameCode, isActive: true });
-            
+
             // Build game object with teams and their players
             const teamsWithPlayers = teams.map(team => ({
               id: team.id,
@@ -564,7 +564,7 @@ wss.on('connection', (ws) => {
         case 'leaderboard_join':
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -579,10 +579,10 @@ wss.on('connection', (ws) => {
             // Load all teams and their current scores from database
             const allTeams = await Team.find({ isActive: true });
             const allPlayers = await Player.find({ isActive: true });
-            
+
             console.log(`📊 Leaderboard joining game ${message.gameCode}`);
             console.log(`📊 Found ${allTeams.length} teams in database`);
-            
+
             // Build teams with their players and database scores
             const teamsWithPlayers = allTeams.map(team => ({
               id: team.id,
@@ -626,7 +626,7 @@ wss.on('connection', (ws) => {
         case 'display_join':
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -643,7 +643,7 @@ wss.on('connection', (ws) => {
               const teamIds = game.teams.map(t => t.id);
               const currentTeams = await Team.find({ id: { $in: teamIds }, isActive: true });
               const currentPlayers = await Player.find({ teamId: { $in: teamIds }, isActive: true });
-              
+
               // Build teams with their current data
               const teamsWithPlayers = currentTeams.map(team => ({
                 id: team.id,
@@ -689,7 +689,7 @@ wss.on('connection', (ws) => {
         case 'player_join':
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -700,35 +700,35 @@ wss.on('connection', (ws) => {
 
             ws.gameCode = message.gameCode;
             ws.role = 'player';
-            
+
             // Find the team by name only (ignore game code)
             console.log(`🔍 Looking for team: "${message.data.teamName}"`);
             console.log(`🔍 In game: "${message.gameCode}"`);
-            
-            const team = await Team.findOne({ 
+
+            const team = await Team.findOne({
               name: { $regex: new RegExp(`^${message.data.teamName}$`, 'i') }, // Case-insensitive search
-              isActive: true 
+              isActive: true
             });
-            
+
             console.log(`🔍 Team search result:`, team ? `Found: ${team.name} (ID: ${team.id})` : 'Not found');
-            
+
             // If not found, show available teams
             if (!team) {
               const allTeams = await Team.find({ isActive: true });
-              
+
               console.log(`🔍 Available teams in database:`);
               allTeams.forEach((t, index) => {
                 console.log(`   ${index + 1}. "${t.name}" (ID: ${t.id}, Game: ${t.gameCode})`);
               });
-              
+
               let errorMessage = `Team "${message.data.teamName}" not found.`;
-              
+
               if (allTeams.length > 0) {
                 errorMessage += ` Available teams: ${allTeams.map(t => t.name).join(', ')}`;
               } else {
                 errorMessage += ` No teams exist yet. Please create teams first.`;
               }
-              
+
               ws.send(JSON.stringify({
                 type: 'error',
                 data: { message: errorMessage }
@@ -740,13 +740,13 @@ wss.on('connection', (ws) => {
             ws.teamName = team.name;
 
             console.log(`✅ Sending joined_game with teamId: ${team.id}, teamName: ${team.name}`);
-            
+
             const responseData = {
               game: game.toObject(),
               teamId: team.id,
               teamName: team.name
             };
-            
+
             console.log(`📤 Response data:`, JSON.stringify(responseData, null, 2));
 
             ws.send(JSON.stringify({
@@ -777,15 +777,15 @@ wss.on('connection', (ws) => {
           try {
             console.log('🔔 Buzzer press received:', message);
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               console.log('❌ Game not found:', message.gameCode);
               return;
             }
-            
+
             console.log('🎮 Current game state:', game.gameState);
             console.log('🔍 Current buzzer state:', game.buzzerPressed);
-            
+
             if (game.gameState !== 'buzzer') {
               console.log('❌ Game state is not buzzer:', game.gameState);
               return;
@@ -796,7 +796,7 @@ wss.on('connection', (ws) => {
               const existingTeamName = game.buzzerPressed.teamName || 'Unknown Team';
               console.log('⚠️ Buzzer already pressed by:', existingTeamName);
               console.log('⚠️ Full buzzer data:', JSON.stringify(game.buzzerPressed));
-              
+
               // Force clear the buzzer and allow this press
               console.log('🔄 Force clearing buzzer to allow new press');
               game.buzzerPressed = null;
@@ -806,9 +806,9 @@ wss.on('connection', (ws) => {
 
             const teamId = message.data?.teamId || ws.teamId;
             console.log('🔍 Looking for team with ID:', teamId);
-            
+
             const team = await Team.findOne({ id: teamId, isActive: true });
-            
+
             if (!team) {
               console.error('❌ Team not found for buzzer press:', teamId);
               const availableTeams = await Team.find({ isActive: true }).select('id name');
@@ -828,7 +828,7 @@ wss.on('connection', (ws) => {
               timestamp: Date.now()
             };
             game.gameState = 'answering';
-            
+
             await game.save();
             console.log('✅ Game saved with buzzer pressed by:', team.name);
 
@@ -840,7 +840,7 @@ wss.on('connection', (ws) => {
 
             console.log('📤 Broadcasting buzzer_pressed to all clients:');
             console.log('   buzzerData:', JSON.stringify(buzzerData, null, 2));
-            
+
             // Use broadcast function to send to all clients
             broadcast(message.gameCode, {
               type: 'buzzer_pressed',
@@ -850,10 +850,10 @@ wss.on('connection', (ws) => {
             // Also send game update to sync the full game state
             console.log('📤 Broadcasting game_update');
             console.log('   game.buzzerPressed:', JSON.stringify(game.buzzerPressed, null, 2));
-            
+
             const gameObject = game.toObject();
             console.log('   gameObject.buzzerPressed:', JSON.stringify(gameObject.buzzerPressed, null, 2));
-            
+
             broadcast(message.gameCode, {
               type: 'game_update',
               data: { game: gameObject }
@@ -868,7 +868,7 @@ wss.on('connection', (ws) => {
         case 'host_join':
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
+
             if (!game) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -883,7 +883,7 @@ wss.on('connection', (ws) => {
             // Load current teams from database
             const currentTeams = await Team.find({ gameCode: message.gameCode, isActive: true });
             const currentPlayers = await Player.find({ gameCode: message.gameCode, isActive: true });
-            
+
             // Build teams with their players
             const teamsWithPlayers = currentTeams.map(team => ({
               id: team.id,
@@ -923,24 +923,24 @@ wss.on('connection', (ws) => {
           try {
             console.log('📥 Received load_all_teams request');
             console.log('🔍 Attempting to query Team collection...');
-            
+
             // Load all teams (not filtered by game code)
             const allTeams = await Team.find({ isActive: true });
-            
+
             console.log(`🔍 Found ${allTeams.length} active teams in database`);
-            
+
             console.log('📊 Teams result:');
             allTeams.forEach((team, index) => {
               console.log(`   ${index + 1}. ${team.name} (Game: ${team.gameCode}, ID: ${team.id}, Active: ${team.isActive})`);
             });
-            
+
             // Load all players for these teams
-            const allPlayers = await Player.find({ 
-              isActive: true 
+            const allPlayers = await Player.find({
+              isActive: true
             });
-            
+
             console.log(`🔍 Found ${allPlayers.length} players in database`);
-            
+
             // Build teams with their players
             const teamsWithPlayers = allTeams.map(team => ({
               id: team.id,
@@ -955,14 +955,14 @@ wss.on('connection', (ws) => {
                 isConnected: p.isConnected
               }))
             }));
-            
+
             console.log('📤 Sending teams_loaded response with teams:', teamsWithPlayers.map(t => `${t.name} (${t.gameCode})`));
-            
+
             ws.send(JSON.stringify({
               type: 'teams_loaded',
               data: { teams: teamsWithPlayers }
             }));
-            
+
             console.log(`✅ Loaded ${allTeams.length} teams for selection`);
           } catch (error) {
             console.error('❌ Load teams error:', error);
@@ -977,37 +977,51 @@ wss.on('connection', (ws) => {
         case 'host_action':
           try {
             const game = await Game.findOne({ code: message.gameCode, isActive: true });
-            
-            if (!game || game.hostId !== ws.id) {
+
+            if (!game) {
+              console.log('❌ host_action: Game not found for code:', message.gameCode);
               return;
             }
 
+            // Check hostId OR fallback to role+gameCode check (handles reconnections where ws.id changes)
+            if (game.hostId !== ws.id) {
+              if (ws.role === 'host' && ws.gameCode === message.gameCode) {
+                console.log('⚠️ host_action: hostId mismatch but role/gameCode match - updating hostId');
+                game.hostId = ws.id;
+                await game.save();
+              } else {
+                console.log('❌ host_action: Unauthorized - hostId mismatch and role/gameCode check failed');
+                console.log(`   game.hostId=${game.hostId}, ws.id=${ws.id}, ws.role=${ws.role}, ws.gameCode=${ws.gameCode}`);
+                return;
+              }
+            }
+
             const action = message.data;
-            
+
             switch (action.type) {
               case 'select_game_teams':
                 console.log('Selecting teams for game:', action.data);
-                
+
                 // Load the selected teams from database
-                const selectedTeams = await Team.find({ 
+                const selectedTeams = await Team.find({
                   id: { $in: [action.data.team1Id, action.data.team2Id] },
-                  isActive: true 
+                  isActive: true
                 });
-                
+
                 console.log(`Found ${selectedTeams.length} teams for selection`);
                 selectedTeams.forEach(team => {
                   console.log(`  - ${team.name} (${team.gameCode})`);
                 });
-                
+
                 if (selectedTeams.length === 2) {
                   // Load players for these teams
-                  const players = await Player.find({ 
+                  const players = await Player.find({
                     teamId: { $in: [action.data.team1Id, action.data.team2Id] },
-                    isActive: true 
+                    isActive: true
                   });
-                  
+
                   console.log(`Found ${players.length} players for selected teams`);
-                  
+
                   // Build teams with their players and RESET scores to 0 for new game
                   const teamsWithPlayers = selectedTeams.map(team => ({
                     id: team.id,
@@ -1021,29 +1035,29 @@ wss.on('connection', (ws) => {
                       isConnected: p.isConnected
                     }))
                   }));
-                  
+
                   // Update game with selected teams
                   game.teams = teamsWithPlayers;
                   game.currentTeamTurn = teamsWithPlayers[0].id;
                   await game.save();
-                  
+
                   console.log(`✅ Selected teams for game with scores reset to 0: ${teamsWithPlayers.map(t => t.name).join(' vs ')}`);
-                  
+
                   // Send confirmation back to client
                   ws.send(JSON.stringify({
                     type: 'teams_selected',
-                    data: { 
+                    data: {
                       teams: teamsWithPlayers,
                       message: `Teams selected: ${teamsWithPlayers.map(t => t.name).join(' vs ')}`
                     }
                   }));
-                  
+
                   // Broadcast updated game state to all clients
                   broadcast(message.gameCode, {
                     type: 'game_update',
                     data: { game: game.toObject() }
                   });
-                  
+
                 } else {
                   console.error(`❌ Could not find both teams. Found: ${selectedTeams.length}`);
                   ws.send(JSON.stringify({
@@ -1073,7 +1087,7 @@ wss.on('connection', (ws) => {
                   game.teams.forEach(team => {
                     team.players = team.players.filter(p => p.id !== action.data.playerId);
                   });
-                  
+
                   // Add to new team
                   targetTeam.players.push({
                     id: action.data.playerId,
@@ -1105,31 +1119,31 @@ wss.on('connection', (ws) => {
                 console.log('🔔 Enabling buzzer - clearing previous state');
                 game.gameState = 'buzzer';
                 game.buzzerPressed = null; // Clear any previous buzzer press
-                
+
                 // Save and broadcast immediately
                 await game.save();
                 console.log('✅ Buzzer enabled and cleared');
-                
+
                 broadcast(message.gameCode, {
                   type: 'buzzer_enabled',
-                  data: { 
+                  data: {
                     gameState: 'buzzer',
                     message: 'Buzzer enabled - ready to buzz!'
                   }
                 });
-                
+
                 broadcast(message.gameCode, {
                   type: 'game_update',
                   data: { game: game.toObject() }
                 });
-                
+
                 console.log(`Host action completed: ${action.type}`);
                 return;
 
               case 'add_points':
                 console.log(`💰 Adding ${action.data.points} points to team ${action.data.teamId}`);
                 console.log(`📊 Current game teams BEFORE update:`, game.teams.map(t => `${t.name}: ${t.score || 0}`));
-                
+
                 // Find team in game object
                 const pointsTeam = game.teams.find(t => t.id === action.data.teamId);
                 if (!pointsTeam) {
@@ -1137,15 +1151,15 @@ wss.on('connection', (ws) => {
                   console.error(`   Available teams:`, game.teams.map(t => `${t.id}: ${t.name}`));
                   break;
                 }
-                
+
                 // Update team score in game object
                 const oldScore = pointsTeam.score || 0;
                 const newScore = oldScore + action.data.points;
                 pointsTeam.score = newScore;
-                
+
                 console.log(`✅ Team ${pointsTeam.name}: ${oldScore} + ${action.data.points} = ${newScore}`);
                 console.log(`📊 Current game teams AFTER update:`, game.teams.map(t => `${t.name}: ${t.score || 0}`));
-                
+
                 // Also update the team in the database for leaderboard
                 const dbTeam = await Team.findOne({ id: action.data.teamId, isActive: true });
                 if (dbTeam) {
@@ -1154,34 +1168,34 @@ wss.on('connection', (ws) => {
                   await dbTeam.save();
                   console.log(`✅ Database team ${dbTeam.name}: ${dbOldScore} + ${action.data.points} = ${dbTeam.score}`);
                 }
-                
+
                 // Mark the game as modified to ensure Mongoose saves it
                 game.markModified('teams');
-                
+
                 // Save the game with updated scores
                 await game.save();
-                
+
                 console.log(`📊 Game saved. Verifying teams:`, game.teams.map(t => `${t.name}: ${t.score || 0}`));
-                
+
                 // Build scores object from current game state
                 const scores = {};
                 game.teams.forEach(team => {
                   scores[team.id] = team.score || 0;
                 });
-                
+
                 console.log('📊 Scores to broadcast:', scores);
                 console.log('📤 Broadcasting points_updated to all clients (including leaderboard)');
-                
+
                 // Send points_updated to update all clients
                 broadcast(message.gameCode, {
                   type: 'points_updated',
                   data: { scores }
                 });
-                
+
                 // Also send teams_loaded to leaderboard to refresh all teams
                 const allTeams = await Team.find({ isActive: true });
                 const allPlayers = await Player.find({ isActive: true });
-                
+
                 const teamsWithPlayers = allTeams.map(team => ({
                   id: team.id,
                   name: team.name,
@@ -1194,12 +1208,12 @@ wss.on('connection', (ws) => {
                     isConnected: p.isConnected
                   }))
                 }));
-                
+
                 broadcast(message.gameCode, {
                   type: 'teams_loaded',
                   data: { teams: teamsWithPlayers }
                 });
-                
+
                 console.log(`✅ Host action completed: ${action.type}`);
                 return;
 
@@ -1208,20 +1222,20 @@ wss.on('connection', (ws) => {
                 const currentRound = game.rounds[game.currentRoundIndex];
                 const currentQuestion = currentRound.questions[currentRound.currentQuestionIndex];
                 const answerIndex = action.data.answerIndex;
-                
+
                 if (currentQuestion.answers[answerIndex]) {
                   currentQuestion.answers[answerIndex].revealed = true;
                   console.log(`✅ Revealed: ${currentQuestion.answers[answerIndex].text} (${currentQuestion.answers[answerIndex].points} points)`);
-                  
+
                   // DON'T automatically assign points - let host choose which team gets them
                   console.log('⚠️ Points not auto-assigned - host must manually assign to team');
                 }
-                
+
                 // Save and broadcast immediately, then return to prevent general broadcast
                 await game.save();
                 broadcast(message.gameCode, {
                   type: 'answer_revealed',
-                  data: { 
+                  data: {
                     answerIndex,
                     answer: currentQuestion.answers[answerIndex],
                     question: currentQuestion
@@ -1231,34 +1245,81 @@ wss.on('connection', (ws) => {
                 return;
 
               case 'add_strike':
-                const team = game.teams.find(t => t.id === action.data.teamId);
-                if (team && team.strikes < 3) {
-                  team.strikes += 1;
+                console.log('➕ Adding strike to team:', action.data.teamId);
+                console.log('   Current game teams:', game.teams.map(t => `${t.name}: ${t.strikes || 0} strikes`));
+
+                // Find the team index in the game document
+                const strikeTeamIndex = game.teams.findIndex(t => t.id === action.data.teamId);
+
+                if (strikeTeamIndex === -1) {
+                  console.error('❌ Team not found:', action.data.teamId);
+                  console.error('   Available teams:', game.teams.map(t => `${t.id}: ${t.name}`));
+                  return;
                 }
-                break;
+
+                const strikeTeam = game.teams[strikeTeamIndex];
+                const currentStrikes = strikeTeam.strikes || 0;
+
+                if (currentStrikes >= 3) {
+                  console.log(`⚠️ Team ${strikeTeam.name} already has 3 strikes`);
+                  return;
+                }
+
+                const newStrikes = currentStrikes + 1;
+                console.log(`   Team ${strikeTeam.name}: ${currentStrikes} → ${newStrikes} strikes`);
+
+                // Update the strikes using Mongoose's $set operator for the specific team
+                // This ensures the change is properly tracked and saved
+                await Game.updateOne(
+                  { _id: game._id, 'teams.id': action.data.teamId },
+                  { $set: { 'teams.$.strikes': newStrikes } }
+                );
+
+                console.log(`   ✅ Game document updated with $set operator`);
+
+                // Also update the Team collection in the database for consistency
+                const dbStrikeTeam = await Team.findOne({ id: action.data.teamId, isActive: true });
+                if (dbStrikeTeam) {
+                  dbStrikeTeam.strikes = newStrikes;
+                  await dbStrikeTeam.save();
+                  console.log(`   ✅ Database Team ${dbStrikeTeam.name} strikes updated to ${newStrikes}`);
+                }
+
+                // Reload the game to get the updated state
+                const updatedGame = await Game.findOne({ code: message.gameCode, isActive: true });
+                console.log('   Teams after update:', updatedGame.teams.map(t => `${t.name}: ${t.strikes || 0} strikes`));
+
+                // Broadcast the updated game
+                broadcast(message.gameCode, {
+                  type: 'game_update',
+                  data: { game: updatedGame.toObject() }
+                });
+
+                console.log(`✅ Host action completed: ${action.type}`);
+                return; // Exit early, don't continue to the general save/broadcast
 
               case 'reset_buzzer':
                 console.log('🔄 Resetting buzzer');
                 game.buzzerPressed = null;
                 game.gameState = 'buzzer';
-                
+
                 // Save and broadcast immediately
                 await game.save();
                 console.log('✅ Buzzer reset - game state back to buzzer');
-                
+
                 broadcast(message.gameCode, {
                   type: 'buzzer_reset',
-                  data: { 
+                  data: {
                     gameState: 'buzzer',
                     message: 'Buzzer has been reset - ready for next buzz!'
                   }
                 });
-                
+
                 broadcast(message.gameCode, {
                   type: 'game_update',
                   data: { game: game.toObject() }
                 });
-                
+
                 console.log(`Host action completed: ${action.type}`);
                 return;
 
@@ -1276,31 +1337,31 @@ wss.on('connection', (ws) => {
                   game.gameState = 'finished';
                   console.log('🏁 Game finished');
                 }
-                
+
                 // Reset strikes and buzzer for new question
                 game.teams.forEach(team => {
                   team.strikes = 0;
                 });
                 game.buzzerPressed = null;
-                
+
                 // Set to 'playing' state - host must manually enable buzzer
                 if (game.gameState !== 'finished') {
                   game.gameState = 'playing';
                 }
-                
+
                 // Save and broadcast immediately, then return to prevent general broadcast
                 await game.save();
-                
+
                 // Broadcast question change
                 broadcast(message.gameCode, {
                   type: 'question_changed',
-                  data: { 
+                  data: {
                     currentRoundIndex: game.currentRoundIndex,
                     currentQuestionIndex: game.rounds[game.currentRoundIndex].currentQuestionIndex,
                     gameState: game.gameState
                   }
                 });
-                
+
                 console.log(`Host action completed: ${action.type}`);
                 return;
 
@@ -1333,14 +1394,27 @@ wss.on('connection', (ws) => {
                 break;
             }
 
+            console.log(`💾 Saving game after ${action.type} action`);
+            console.log(`   Teams before save:`, game.teams.map(t => `${t.name}: ${t.strikes} strikes`));
+
             await game.save();
+
+            console.log(`✅ Game saved successfully`);
+
+            // Reload the game to verify it was saved correctly
+            const reloadedGame = await Game.findOne({ code: message.gameCode, isActive: true });
+            console.log(`   Teams after reload:`, reloadedGame.teams.map(t => `${t.name}: ${t.strikes} strikes`));
+
+            console.log(`📡 Broadcasting game_update after ${action.type}`);
+            const gameObject = reloadedGame.toObject();
+            console.log(`   Teams in broadcast:`, gameObject.teams.map(t => `${t.name}: ${t.strikes} strikes, ${t.score} points`));
 
             broadcast(message.gameCode, {
               type: 'game_update',
-              data: { game: game.toObject() }
+              data: { game: gameObject }
             });
 
-            console.log(`Host action: ${action.type}`);
+            console.log(`✅ Host action completed: ${action.type}`);
           } catch (error) {
             console.error('Host action error:', error);
           }

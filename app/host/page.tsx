@@ -105,10 +105,14 @@ export default function HostPage() {
         case 'game_update':
           console.log('📨 GAME_UPDATE received');
           console.log('   Server game teams:', message.data.game.teams?.length || 0);
-          console.log('   Server team scores:', message.data.game.teams?.map((t: any) => `${t.name}: ${t.score}`));
+          console.log('   Server team scores:', message.data.game.teams?.map((t: any) => `${t.name}: ${t.score} pts`));
+          console.log('   Server team strikes:', message.data.game.teams?.map((t: any) => `${t.name}: ${t.strikes} strikes`));
           
           // Use server data as source of truth
           setGame(message.data.game);
+          
+          // Log what we just set
+          console.log('✅ Game state updated');
           break;
         case 'points_updated':
           console.log('📨 POINTS_UPDATED received');
@@ -667,6 +671,7 @@ export default function HostPage() {
                               }`}
                             />
                           ))}
+                          <span className="text-xs font-bold text-red-400 ml-2">({team.strikes || 0}/3)</span>
                         </div>
                         
                         <div className="space-y-1">
@@ -842,18 +847,26 @@ export default function HostPage() {
                   </div>
                   
                   <div className="flex justify-between items-center mb-2">
-                    <div className="flex space-x-1">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className={`w-3 h-3 rounded-full ${
-                            i < team.strikes ? 'bg-red-500' : 'bg-gray-600'
-                          }`}
-                        />
-                      ))}
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs text-gray-400">Strikes:</span>
+                      <div className="flex space-x-1">
+                        {[...Array(3)].map((_, i) => (
+                          <div
+                            key={i}
+                            className={`w-3 h-3 rounded-full ${
+                              i < team.strikes ? 'bg-red-500' : 'bg-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs font-bold text-red-400">({team.strikes}/3)</span>
                     </div>
                     <button
-                      onClick={() => addStrike(team.id)}
+                      onClick={() => {
+                        console.log(`🔴 Adding strike to team: ${team.name} (${team.id})`);
+                        console.log(`   Current strikes: ${team.strikes}`);
+                        addStrike(team.id);
+                      }}
                       className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs"
                       disabled={team.strikes >= 3}
                     >

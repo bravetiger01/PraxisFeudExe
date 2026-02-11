@@ -8,17 +8,20 @@ import { getWebSocketUrl } from '../../lib/websocket';
 function DisplayPageContent() {
   const searchParams = useSearchParams();
   const gameCode = searchParams?.get('code');
-  
+
   const [game, setGame] = useState<Game | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [showStrikeAnimation, setShowStrikeAnimation] = useState(false);
+  const [currentStrikeCount, setCurrentStrikeCount] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
+  const previousStrikesRef = useRef<{ [teamId: string]: number }>({});
 
   useEffect(() => {
     if (!gameCode) return;
 
     // Connect to WebSocket
     wsRef.current = new WebSocket(getWebSocketUrl());
-    
+
     wsRef.current.onopen = () => {
       setIsConnected(true);
       // Join as display (not as player with team)
@@ -30,7 +33,7 @@ function DisplayPageContent() {
 
     wsRef.current.onmessage = (event) => {
       const message: WSMessage = JSON.parse(event.data);
-      
+
       switch (message.type) {
         case 'joined_game':
           console.log('📺 Display joined game');
@@ -45,7 +48,7 @@ function DisplayPageContent() {
           // Update only the answer state, preserve team scores
           setGame(prevGame => {
             if (!prevGame) return prevGame;
-            
+
             const updatedRounds = [...prevGame.rounds];
             const currentRound = updatedRounds[prevGame.currentRoundIndex];
             if (currentRound) {
@@ -54,7 +57,7 @@ function DisplayPageContent() {
                 currentQuestion.answers[message.data.answerIndex].revealed = true;
               }
             }
-            
+
             return {
               ...prevGame,
               rounds: updatedRounds
@@ -68,13 +71,13 @@ function DisplayPageContent() {
           // Update game state but preserve team scores
           setGame(prevGame => {
             if (!prevGame) return prevGame;
-            
+
             // Update the rounds structure properly
             const updatedRounds = [...prevGame.rounds];
             if (updatedRounds[message.data.currentRoundIndex]) {
               updatedRounds[message.data.currentRoundIndex].currentQuestionIndex = message.data.currentQuestionIndex;
             }
-            
+
             return {
               ...prevGame,
               currentRoundIndex: message.data.currentRoundIndex,
@@ -96,7 +99,7 @@ function DisplayPageContent() {
           // Update team scores
           setGame(prevGame => {
             if (!prevGame) return prevGame;
-            
+
             return {
               ...prevGame,
               teams: prevGame.teams.map(team => ({
@@ -150,6 +153,32 @@ function DisplayPageContent() {
     };
   }, [gameCode]);
 
+  // Detect strike changes and trigger animation
+  useEffect(() => {
+    if (!game || !game.teams) return;
+
+    // Check if any team's strikes increased
+    game.teams.forEach(team => {
+      const previousStrikes = previousStrikesRef.current[team.id] || 0;
+      const currentStrikes = team.strikes || 0;
+
+      if (currentStrikes > previousStrikes) {
+        // Strike was added!
+        console.log(`🎬 Strike animation triggered for ${team.name}: ${previousStrikes} → ${currentStrikes}`);
+        setCurrentStrikeCount(currentStrikes);
+        setShowStrikeAnimation(true);
+
+        // Hide animation after 2 seconds
+        setTimeout(() => {
+          setShowStrikeAnimation(false);
+        }, 2000);
+      }
+
+      // Update previous strikes
+      previousStrikesRef.current[team.id] = currentStrikes;
+    });
+  }, [game?.teams]);
+
   if (!gameCode) {
     return (
       <div className="min-h-screen bg-red-900 flex items-center justify-center">
@@ -170,7 +199,59 @@ function DisplayPageContent() {
   const currentQuestion = currentRound?.questions[currentRound.currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white relative">
+      {/* Strike Animation Overlay */}
+      {showStrikeAnimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="flex gap-8">
+            {[...Array(currentStrikeCount)].map((_, i) => (
+              <div
+                key={i}
+                className="relative w-64 h-64 animate-strike-bounce"
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                {/* Red X */}
+                <svg
+                  viewBox="0 0 100 100"
+                  className="w-full h-full drop-shadow-2xl"
+                >
+                  {/* Red square background */}
+                  <rect
+                    x="5"
+                    y="5"
+                    width="90"
+                    height="90"
+                    fill="#DC2626"
+                    stroke="#991B1B"
+                    strokeWidth="3"
+                    rx="8"
+                    className="animate-pulse"
+                  />
+                  {/* White X */}
+                  <line
+                    x1="20"
+                    y1="20"
+                    x2="80"
+                    y2="80"
+                    stroke="white"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1="80"
+                    y1="20"
+                    x2="20"
+                    y2="80"
+                    stroke="white"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div className="bg-black/30 p-6">
         <div className="flex justify-between items-center max-w-7xl mx-auto">
@@ -191,21 +272,19 @@ function DisplayPageContent() {
           {game.teams.map((team, index) => (
             <div
               key={team.id}
-              className={`bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center ${
-                game.currentTeamTurn === team.id ? 'ring-4 ring-yellow-400' : ''
-              }`}
+              className={`bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center ${game.currentTeamTurn === team.id ? 'ring-4 ring-yellow-400' : ''
+                }`}
             >
               <h2 className="text-4xl font-bold mb-4">{team.name}</h2>
               <div className="text-6xl font-bold mb-4">{team.score}</div>
-              
+
               {/* Strikes */}
               <div className="flex justify-center space-x-3 mb-4">
                 {[...Array(3)].map((_, i) => (
                   <div
                     key={i}
-                    className={`w-8 h-8 rounded-full ${
-                      i < team.strikes ? 'bg-red-500' : 'bg-gray-600'
-                    }`}
+                    className={`w-8 h-8 rounded-full ${i < team.strikes ? 'bg-red-500' : 'bg-gray-600'
+                      }`}
                   />
                 ))}
               </div>
@@ -226,7 +305,7 @@ function DisplayPageContent() {
         {currentQuestion && (
           <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8">
             <h3 className="text-4xl font-bold text-center mb-8">{currentQuestion.text}</h3>
-            
+
             {/* Simple Buzzer Message - Persistent */}
             {game.buzzerPressed && (
               <div className="bg-green-600 rounded-3xl p-6 mb-8 text-center">
@@ -250,11 +329,10 @@ function DisplayPageContent() {
               {currentQuestion.answers.map((answer, index) => (
                 <div
                   key={index}
-                  className={`p-6 rounded-2xl flex justify-between items-center text-2xl font-bold ${
-                    answer.revealed 
-                      ? 'bg-green-600 animate-pulse' 
+                  className={`p-6 rounded-2xl flex justify-between items-center text-2xl font-bold ${answer.revealed
+                      ? 'bg-green-600 animate-pulse'
                       : 'bg-gray-700'
-                  }`}
+                    }`}
                 >
                   <span className="flex items-center">
                     <span className="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center mr-4">
@@ -286,7 +364,7 @@ function DisplayPageContent() {
             <div className="text-center">
               <p className="text-5xl text-yellow-400 font-bold mb-4">Game Over!</p>
               <p className="text-3xl">
-                Winner: {game.teams.reduce((winner, team) => 
+                Winner: {game.teams.reduce((winner, team) =>
                   team.score > winner.score ? team : winner
                 ).name}
               </p>
