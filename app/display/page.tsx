@@ -199,7 +199,9 @@ function DisplayPageContent() {
   const currentQuestion = currentRound?.questions[currentRound.currentQuestionIndex];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 text-white relative">
+    <div className="min-h-screen text-white relative overflow-hidden" style={{
+      background: 'radial-gradient(ellipse at center top, #000000 0%, #1B59F5 100%)'
+    }}>
       {/* Strike Animation Overlay */}
       {showStrikeAnimation && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -252,125 +254,156 @@ function DisplayPageContent() {
           </div>
         </div>
       )}
-      {/* Header */}
-      <div className="bg-black/30 p-6">
-        <div className="flex justify-between items-center max-w-7xl mx-auto">
-          <div>
-            <h1 className="text-5xl font-bold">Feud.Exe</h1>
-            <p className="text-2xl text-blue-200">Execution Begins With The Beep</p>
-          </div>
-          <div className="text-right">
-            <p className="text-3xl font-bold">Round {game.currentRoundIndex + 1}</p>
-            <p className="text-xl text-gray-300">Question {(currentRound?.currentQuestionIndex || 0) + 1} of 3</p>
-          </div>
-        </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto p-8">
-        {/* Teams */}
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          {game.teams.map((team, index) => (
-            <div
-              key={team.id}
-              className={`bg-white/10 backdrop-blur-lg rounded-3xl p-8 text-center ${game.currentTeamTurn === team.id ? 'ring-4 ring-yellow-400' : ''
-                }`}
+      <div className="max-w-7xl mx-auto p-8 relative z-10 flex flex-col items-center justify-center min-h-screen">
+        {/* Current Question */}
+        {currentQuestion && (
+          <>
+            {/* Question Box */}
+            <div 
+              className="w-full max-w-5xl mb-8 p-8 rounded-3xl text-center text-4xl font-bold"
+              style={{
+                background: '#1B59F5',
+                border: '4px solid #F51BAD',
+                boxShadow: '0 0 30px rgba(245, 27, 173, 0.5)',
+                fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+              }}
             >
-              <h2 className="text-4xl font-bold mb-4">{team.name}</h2>
-              <div className="text-6xl font-bold mb-4">{team.score}</div>
+              {currentQuestion.text}
+            </div>
 
-              {/* Strikes */}
-              <div className="flex justify-center space-x-3 mb-4">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`w-8 h-8 rounded-full ${i < team.strikes ? 'bg-red-500' : 'bg-gray-600'
-                      }`}
-                  />
-                ))}
+            {/* Top Score Box - Total Revealed Points */}
+            <div 
+              className="mb-8 px-12 py-6 rounded-3xl text-7xl font-bold"
+              style={{
+                background: '#1B59F5',
+                border: '4px solid #F51BAD',
+                boxShadow: '0 0 30px rgba(245, 27, 173, 0.5)',
+                fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+              }}
+            >
+              00
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="w-full max-w-6xl grid grid-cols-[auto_1fr_auto] gap-8 items-center">
+              {/* Left Team Score */}
+              <div 
+                className="px-10 py-8 rounded-3xl text-7xl font-bold"
+                style={{
+                  background: '#1B59F5',
+                  border: '4px solid #F51BAD',
+                  boxShadow: '0 0 30px rgba(245, 27, 173, 0.5)',
+                  fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+                }}
+              >
+                10
               </div>
 
-              {/* Players */}
-              <div className="space-y-2">
-                {team.players.map((player) => (
-                  <div key={player.id} className="text-xl bg-white/10 p-2 rounded-lg">
-                    {player.name}
+              {/* Answers Grid - 2 columns, 3 rows */}
+              <div className="grid grid-cols-2 gap-4">
+                {currentQuestion.answers.map((answer, index) => (
+                  <div
+                    key={index}
+                    className="relative p-6 rounded-3xl flex items-center justify-center text-3xl font-bold transition-all duration-300"
+                    style={{
+                      background: answer.revealed 
+                        ? '#F51BAD' 
+                        : 'radial-gradient(circle at center, #7841FF 0%, #1B59F5 100%)',
+                      border: answer.revealed ? '3px solid #F51BAD' : '3px solid #F51BAD',
+                      boxShadow: answer.revealed 
+                        ? '0 0 30px rgba(245, 27, 173, 0.6)' 
+                        : '0 0 20px rgba(120, 65, 255, 0.4)',
+                      minHeight: '80px',
+                      fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+                    }}
+                  >
+                    {answer.revealed ? (
+                      <span className="text-white">{answer.text}</span>
+                    ) : (
+                      <div 
+                        className="w-16 h-16 rounded-full flex items-center justify-center text-4xl font-bold"
+                        style={{
+                          background: 'radial-gradient(circle at center, #7841FF 0%, #1B59F5 100%)',
+                          border: '3px solid rgba(255, 255, 255, 0.3)',
+                          boxShadow: '0 0 20px rgba(120, 65, 255, 0.6)'
+                        }}
+                      >
+                        {index + 1}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Current Question */}
-        {currentQuestion && (
-          <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 mb-8">
-            <h3 className="text-4xl font-bold text-center mb-8">{currentQuestion.text}</h3>
-
-            {/* Simple Buzzer Message - Persistent */}
-            {game.buzzerPressed && (
-              <div className="bg-green-600 rounded-3xl p-6 mb-8 text-center">
-                <p className="text-4xl font-bold text-white">
-                  🔥 Team "{game.buzzerPressed.teamName || 'Unknown'}" pressed the buzzer first! 🔥
-                </p>
+              {/* Right Team Score */}
+              <div 
+                className="px-10 py-8 rounded-3xl text-7xl font-bold"
+                style={{
+                  background: '#1B59F5',
+                  border: '4px solid #F51BAD',
+                  boxShadow: '0 0 30px rgba(245, 27, 173, 0.5)',
+                  fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+                }}
+              >
+                10
               </div>
-            )}
-
-            {/* Debug Info */}
-            {process.env.NODE_ENV === 'development' && (
-              <div className="bg-gray-800 p-2 mb-4 text-xs text-white">
-                <div>Game State: {game.gameState}</div>
-                <div>Buzzer Pressed: {game.buzzerPressed ? `Yes - ${game.buzzerPressed.teamName}` : 'No'}</div>
-                <div>Teams: {game.teams?.length || 0}</div>
-              </div>
-            )}
-
-            {/* Answers */}
-            <div className="grid grid-cols-1 gap-4">
-              {currentQuestion.answers.map((answer, index) => (
-                <div
-                  key={index}
-                  className={`p-6 rounded-2xl flex justify-between items-center text-2xl font-bold ${answer.revealed
-                      ? 'bg-green-600 animate-pulse'
-                      : 'bg-gray-700'
-                    }`}
-                >
-                  <span className="flex items-center">
-                    <span className="bg-white/20 rounded-full w-12 h-12 flex items-center justify-center mr-4">
-                      {index + 1}
-                    </span>
-                    {answer.revealed ? answer.text : '???'}
-                  </span>
-                  <span className="text-4xl">
-                    {answer.revealed ? answer.points : '?'}
-                  </span>
-                </div>
-              ))}
             </div>
+
+            {/* Logo at Bottom */}
+            <div className="mt-12">
+              <img src="/logo.png" alt="Feud.Exe Logo" className="h-32 w-auto drop-shadow-2xl" />
+            </div>
+          </>
+        )}
+
+        {/* Game State Messages */}
+        {game.gameState === 'buzzer' && !game.buzzerPressed && (
+          <div 
+            className="w-full max-w-3xl p-8 rounded-3xl text-center text-4xl font-bold animate-pulse"
+            style={{
+              background: '#1B59F5',
+              border: '4px solid #F51BAD',
+              boxShadow: '0 0 30px rgba(245, 27, 173, 0.5)',
+              fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+            }}
+          >
+            Ready for buzzer!
           </div>
         )}
 
-        {/* Game State */}
-        <div className="text-center">
-          {game.gameState === 'waiting' && (
-            <p className="text-3xl text-yellow-400">Waiting for players to join...</p>
-          )}
-          {game.gameState === 'buzzer' && (
-            <p className="text-3xl text-green-400 animate-bounce">Ready for buzzer!</p>
-          )}
-          {game.gameState === 'answering' && (
-            <p className="text-3xl text-blue-400">Answering in progress...</p>
-          )}
-          {game.gameState === 'finished' && (
-            <div className="text-center">
-              <p className="text-5xl text-yellow-400 font-bold mb-4">Game Over!</p>
-              <p className="text-3xl">
-                Winner: {game.teams.reduce((winner, team) =>
-                  team.score > winner.score ? team : winner
-                ).name}
-              </p>
-            </div>
-          )}
-        </div>
+        {game.buzzerPressed && (
+          <div 
+            className="w-full max-w-4xl p-10 rounded-3xl text-center text-5xl font-bold mb-8"
+            style={{
+              background: '#F51BAD',
+              border: '4px solid #F51BAD',
+              boxShadow: '0 0 40px rgba(245, 27, 173, 0.8)',
+              fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+            }}
+          >
+            🔥 Team "{game.buzzerPressed.teamName || 'Unknown'}" pressed the buzzer first! 🔥
+          </div>
+        )}
+
+        {game.gameState === 'finished' && (
+          <div 
+            className="w-full max-w-4xl p-12 rounded-3xl text-center"
+            style={{
+              background: '#1B59F5',
+              border: '4px solid #F51BAD',
+              boxShadow: '0 0 40px rgba(245, 27, 173, 0.8)',
+              fontFamily: "'Roslindale', 'Arial Black', sans-serif"
+            }}
+          >
+            <p className="text-7xl font-bold mb-6">🎉 Game Over! 🎉</p>
+            <p className="text-5xl">
+              Winner: {game.teams.reduce((winner, team) =>
+                team.score > winner.score ? team : winner
+              ).name}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

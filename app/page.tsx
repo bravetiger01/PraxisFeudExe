@@ -37,71 +37,90 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-8 w-full max-w-md shadow-2xl border border-white/20">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" style={{
+      background: 'radial-gradient(circle at center, #1B59F5 0%, #000000 100%)'
+    }}>
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+      </div>
+
+      <div className="bg-white/5 backdrop-blur-xl rounded-3xl p-10 w-full max-w-lg shadow-2xl border border-white/10 relative z-10">
+        {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">Feud.Exe</h1>
-          <p className="text-blue-200 text-lg">Execution Begins With The Beep</p>
+          <div className="flex justify-center mb-6">
+            <img src="/logo.png" alt="Feud.Exe Logo" className="h-24 w-auto drop-shadow-2xl" />
+          </div>
+          <h1 className="text-5xl font-bold text-white mb-3 tracking-tight" style={{ fontFamily: "'Roslindale', 'Arial Black', sans-serif" }}>Feud.Exe</h1>
+          <p className="text-blue-300 text-xl font-medium" style={{ fontFamily: "'Roslindale', Arial, sans-serif" }}>Execution Begins With The Beep</p>
         </div>
 
         <div className="space-y-6">
           {/* Host Game */}
           <button
             onClick={handleHostGame}
-            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold py-4 px-6 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
+            className="w-full bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 hover:from-emerald-600 hover:via-green-600 hover:to-teal-600 text-white font-bold py-5 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-lg text-lg"
           >
-            🎮 Host New Game
+            <span className="text-2xl mr-2">🎮</span> Host New Game
           </button>
 
-          <div className="border-t border-white/20 pt-6">
-            <h3 className="text-white font-semibold mb-4 text-center">Join Existing Game</h3>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-white/20"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-transparent text-white/70 font-medium">OR</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-white font-semibold text-lg text-center mb-4" style={{ fontFamily: "'Roslindale', Arial, sans-serif" }}>Join Existing Game</h3>
             
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Enter 4-digit game code"
-                value={gameCode}
-                onChange={(e) => setGameCode(e.target.value.toUpperCase().slice(0, 4))}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                maxLength={4}
-              />
+            <input
+              type="text"
+              placeholder="Enter 4-digit game code"
+              value={gameCode}
+              onChange={(e) => setGameCode(e.target.value.toUpperCase().slice(0, 4))}
+              className="w-full px-5 py-4 rounded-2xl bg-white/10 border-2 border-white/20 text-white text-center text-xl font-bold placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 tracking-widest"
+              maxLength={4}
+            />
 
-              <input
-                type="text"
-                placeholder="Enter your team name"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/30 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-              />
+            <input
+              type="text"
+              placeholder="Enter your team name"
+              value={playerName}
+              onChange={(e) => setPlayerName(e.target.value)}
+              className="w-full px-5 py-4 rounded-2xl bg-white/10 border-2 border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            />
 
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={handleJoinAsPlayer}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-600 hover:from-blue-600 hover:to-cyan-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-sm"
-                >
-                  🔥 Join as Player
-                </button>
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <button
+                onClick={handleJoinAsPlayer}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg text-base"
+              >
+                <span className="text-xl mr-2">🔥</span> Join as Player
+              </button>
 
-                <button
-                  onClick={handleJoinAsDisplay}
-                  className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-sm"
-                >
-                  📺 Join as Display
-                </button>
+              <button
+                onClick={handleJoinAsDisplay}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg text-base"
+              >
+                <span className="text-xl mr-2">📺</span> Join as Display
+              </button>
 
-                <button
-                  onClick={handleJoinAsLeaderboard}
-                  className="bg-gradient-to-r from-yellow-500 to-orange-600 hover:from-yellow-600 hover:to-orange-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 transform hover:scale-105 shadow-lg text-sm"
-                >
-                  🏆 Leaderboard
-                </button>
-              </div>
+              <button
+                onClick={handleJoinAsLeaderboard}
+                className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold py-4 px-6 rounded-2xl transition-all duration-300 transform hover:scale-105 shadow-lg text-base"
+              >
+                <span className="text-xl mr-2">🏆</span> Leaderboard
+              </button>
             </div>
           </div>
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-white/60 text-sm">
+        <div className="mt-8 pt-6 border-t border-white/10 text-center">
+          <p className="text-white/50 text-sm font-medium" style={{ fontFamily: "'Roslindale', Arial, sans-serif" }}>
             Teams of 4 • 3 Rounds • 9 Questions
           </p>
         </div>
