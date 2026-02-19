@@ -17,11 +17,13 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
-#     labels:
-#       caddy: ${DOMAIN}
-#       caddy.reverse_proxy: "{{upstreams 8080}}"
+    labels:
+      caddy: ${DOMAIN}
+      caddy.reverse_proxy: "{{upstreams 8080}}"
+      caddy.tls: "tls1.3"
+      caddy.tls.dns: "cloudflare ${TOKEN}"
 
-# networks:
-#   default:
-#     name: all
-#     external: true
+networks:
+  default:
+    name: all
+    external: true
