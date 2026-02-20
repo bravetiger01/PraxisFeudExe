@@ -271,14 +271,18 @@ function DisplayPageContent() {
       )}
 
       <div className="max-w-7xl mx-auto p-8 relative z-10 flex flex-col items-center justify-center min-h-screen">
+        {/* Logo - Fixed Top Right */}
+        <div className="fixed top-8 right-8 z-20">
+          <img src="/logo.png" alt="Feud.Exe Logo" className="h-24 w-auto drop-shadow-2xl" />
+        </div>
+
         {/* Current Question */}
         {currentQuestion && (
           <>
-            {/* Question Box with Logo */}
-            <div className="w-full max-w-5xl mb-8 flex items-center gap-6">
-              {/* Question - Centered */}
+            {/* Question Box - Full Width */}
+            <div className="w-full max-w-5xl mb-8">
               <div 
-                className="flex-1 p-8 rounded-3xl text-center text-4xl font-bold"
+                className="p-8 rounded-3xl text-center text-4xl font-bold"
                 style={{
                   background: '#1B59F5',
                   border: '4px solid #F51BAD',
@@ -288,9 +292,6 @@ function DisplayPageContent() {
               >
                 {currentQuestion.text}
               </div>
-              
-              {/* Logo - Right Side */}
-              <img src="/logo.png" alt="Feud.Exe Logo" className="h-24 w-auto drop-shadow-2xl flex-shrink-0" />
             </div>
 
             {/* Main Content Grid */}
