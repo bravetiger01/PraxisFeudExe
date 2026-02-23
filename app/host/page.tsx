@@ -25,10 +25,7 @@ export default function HostPage() {
   // Question selection state
   const [allQuestions, setAllQuestions] = useState<any[]>([]);
   const [showQuestionSelection, setShowQuestionSelection] = useState(false);
-  const [selectedRound1, setSelectedRound1] = useState<any[]>([]);
-  const [selectedRound2, setSelectedRound2] = useState<any[]>([]);
-  const [selectedRound3, setSelectedRound3] = useState<any[]>([]);
-  const [currentRoundSelection, setCurrentRoundSelection] = useState<1 | 2 | 3>(1);
+  const [selectedQuestions, setSelectedQuestions] = useState<any[]>([]);
   const [questionsSelected, setQuestionsSelected] = useState(false);
   const [questionVisible, setQuestionVisible] = useState(false); // Track if question is shown on display
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState(0); // Track available questions
@@ -343,8 +340,8 @@ export default function HostPage() {
   };
 
   const confirmQuestionSelection = () => {
-    if (selectedRound1.length !== 3 || selectedRound2.length !== 3 || selectedRound3.length !== 3) {
-      alert('Please select exactly 3 questions for each round');
+    if (selectedQuestions.length !== 3) {
+      alert('Please select exactly 3 questions');
       return;
     }
 
@@ -354,9 +351,9 @@ export default function HostPage() {
         type: 'select_questions',
         gameCode: game.code,
         data: {
-          round1Questions: selectedRound1,
-          round2Questions: selectedRound2,
-          round3Questions: selectedRound3
+          round1Questions: selectedQuestions,
+          round2Questions: [],
+          round3Questions: []
         }
       }));
       
@@ -367,22 +364,17 @@ export default function HostPage() {
   };
 
   const toggleQuestionSelection = (question: any) => {
-    const currentSelection = currentRoundSelection === 1 ? selectedRound1 : 
-                            currentRoundSelection === 2 ? selectedRound2 : selectedRound3;
-    const setSelection = currentRoundSelection === 1 ? setSelectedRound1 : 
-                        currentRoundSelection === 2 ? setSelectedRound2 : setSelectedRound3;
-
-    const isSelected = currentSelection.some(q => q.id === question.id);
+    const isSelected = selectedQuestions.some(q => q.id === question.id);
     
     if (isSelected) {
       // Deselect
-      setSelection(currentSelection.filter(q => q.id !== question.id));
+      setSelectedQuestions(selectedQuestions.filter(q => q.id !== question.id));
     } else {
       // Select (max 3)
-      if (currentSelection.length < 3) {
-        setSelection([...currentSelection, question]);
+      if (selectedQuestions.length < 3) {
+        setSelectedQuestions([...selectedQuestions, question]);
       } else {
-        alert('You can only select 3 questions per round');
+        alert('You can only select 3 questions');
       }
     }
   };
@@ -621,8 +613,7 @@ export default function HostPage() {
               <p className="text-gray-300">Game Code: <span className="text-2xl font-mono bg-blue-600 px-3 py-1 rounded">{game.code}</span></p>
             </div>
             <div className="text-right">
-              <p className="text-lg">Round {game.currentRoundIndex + 1} of 3</p>
-              <p className="text-gray-300">Question {currentRound?.currentQuestionIndex + 1} of 3</p>
+              <p className="text-lg">Question {currentRound?.currentQuestionIndex + 1} of 3</p>
             </div>
           </div>
         </div>
@@ -682,7 +673,7 @@ export default function HostPage() {
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
                 <div className="bg-gray-800 rounded-lg p-6 max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-2xl font-bold">Select Questions for Each Round</h3>
+                    <h3 className="text-2xl font-bold">Select 3 Questions for the Game</h3>
                     <div className="text-right">
                       <p className="text-sm text-gray-300">Available: {availableQuestionsCount} questions</p>
                       <button
@@ -695,55 +686,31 @@ export default function HostPage() {
                   </div>
                   
                   {/* Warning if not enough questions */}
-                  {availableQuestionsCount < 9 && (
+                  {availableQuestionsCount < 3 && (
                     <div className="bg-red-900 border border-red-600 rounded-lg p-4 mb-4">
                       <p className="text-red-200 font-semibold">⚠️ Warning: Only {availableQuestionsCount} questions available!</p>
-                      <p className="text-red-300 text-sm mt-1">You need 9 questions (3 per round). Click "Reset Used Questions" to make all questions available again.</p>
+                      <p className="text-red-300 text-sm mt-1">You need 3 questions. Click "Reset Used Questions" to make all questions available again.</p>
                     </div>
                   )}
                   
-                  {/* Round Tabs */}
-                  <div className="flex space-x-2 mb-4">
-                    <button
-                      onClick={() => setCurrentRoundSelection(1)}
-                      className={`px-4 py-2 rounded ${currentRoundSelection === 1 ? 'bg-blue-600' : 'bg-gray-700'}`}
-                    >
-                      Round 1 ({selectedRound1.length}/3)
-                    </button>
-                    <button
-                      onClick={() => setCurrentRoundSelection(2)}
-                      className={`px-4 py-2 rounded ${currentRoundSelection === 2 ? 'bg-blue-600' : 'bg-gray-700'}`}
-                    >
-                      Round 2 ({selectedRound2.length}/3)
-                    </button>
-                    <button
-                      onClick={() => setCurrentRoundSelection(3)}
-                      className={`px-4 py-2 rounded ${currentRoundSelection === 3 ? 'bg-blue-600' : 'bg-gray-700'}`}
-                    >
-                      Round 3 ({selectedRound3.length}/3)
-                    </button>
+                  {/* Selection Counter */}
+                  <div className="mb-4 p-3 bg-blue-900 rounded-lg">
+                    <p className="text-lg font-semibold text-center">
+                      Selected: {selectedQuestions.length} / 3 Questions
+                    </p>
                   </div>
 
                   {/* Questions List */}
                   <div className="space-y-2 mb-4 max-h-96 overflow-y-auto">
                     {allQuestions.map((question) => {
-                      const currentSelection = currentRoundSelection === 1 ? selectedRound1 : 
-                                              currentRoundSelection === 2 ? selectedRound2 : selectedRound3;
-                      const isSelected = currentSelection.some(q => q.id === question.id);
-                      const isUsedInOtherRound = (
-                        (currentRoundSelection !== 1 && selectedRound1.some(q => q.id === question.id)) ||
-                        (currentRoundSelection !== 2 && selectedRound2.some(q => q.id === question.id)) ||
-                        (currentRoundSelection !== 3 && selectedRound3.some(q => q.id === question.id))
-                      );
+                      const isSelected = selectedQuestions.some(q => q.id === question.id);
 
                       return (
                         <div
                           key={question.id}
-                          onClick={() => !isUsedInOtherRound && toggleQuestionSelection(question)}
+                          onClick={() => toggleQuestionSelection(question)}
                           className={`p-3 rounded cursor-pointer ${
-                            isSelected ? 'bg-green-600' : 
-                            isUsedInOtherRound ? 'bg-gray-600 opacity-50 cursor-not-allowed' :
-                            'bg-gray-700 hover:bg-gray-600'
+                            isSelected ? 'bg-green-600' : 'bg-gray-700 hover:bg-gray-600'
                           }`}
                         >
                           <div className="font-semibold">{question.text}</div>
@@ -759,7 +726,7 @@ export default function HostPage() {
                   <div className="flex space-x-3">
                     <button
                       onClick={confirmQuestionSelection}
-                      disabled={selectedRound1.length !== 3 || selectedRound2.length !== 3 || selectedRound3.length !== 3}
+                      disabled={selectedQuestions.length !== 3}
                       className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 px-4 py-2 rounded font-semibold"
                     >
                       Confirm Selection
@@ -1148,7 +1115,7 @@ export default function HostPage() {
             {!questionsSelected && (
               <div className="bg-yellow-900 border border-yellow-600 rounded-lg p-6 text-center">
                 <p className="text-xl font-bold text-yellow-300 mb-2">⚠️ No Questions Selected</p>
-                <p className="text-yellow-200 mb-4">Please select 9 questions (3 per round) before starting the game.</p>
+                <p className="text-yellow-200 mb-4">Please select 3 questions before starting the game.</p>
                 <button
                   onClick={() => {
                     requestAllQuestions();
