@@ -16,6 +16,43 @@ function DisplayPageContent() {
   const [revealingAnswers, setRevealingAnswers] = useState<Set<number>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
   const previousStrikesRef = useRef<{ [teamId: string]: number }>({});
+  const strikeSoundRef = useRef<HTMLAudioElement | null>(null);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+
+  // Initialize strike sound
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !strikeSoundRef.current) {
+      console.log('🔊 Initializing strike sound...');
+      strikeSoundRef.current = new Audio('/strike.mp3');
+      strikeSoundRef.current.volume = 0.8;
+      
+      // Preload the audio
+      strikeSoundRef.current.load();
+      
+      strikeSoundRef.current.addEventListener('canplaythrough', () => {
+        console.log('✅ Strike sound loaded and ready to play');
+      });
+      
+      strikeSoundRef.current.addEventListener('error', (e) => {
+        console.error('❌ Strike sound failed to load:', e);
+      });
+    }
+  }, []);
+
+  // Unlock audio on first user interaction
+  const unlockAudio = () => {
+    if (!audioUnlocked && strikeSoundRef.current) {
+      console.log('🔓 Unlocking audio...');
+      strikeSoundRef.current.play().then(() => {
+        strikeSoundRef.current!.pause();
+        strikeSoundRef.current!.currentTime = 0;
+        setAudioUnlocked(true);
+        console.log('✅ Audio unlocked - sound will now play on strikes');
+      }).catch(() => {
+        console.log('⚠️ Audio unlock failed, will try again');
+      });
+    }
+  };
 
   useEffect(() => {
     if (!gameCode) return;
@@ -186,27 +223,56 @@ function DisplayPageContent() {
     };
   }, [gameCode]);
 
-  // Detect strike changes and trigger animation
+  // Detect strike changes and trigger animation + sound
   useEffect(() => {
-    if (!game || !game.teams) return;
+    if (!game || !game.teams) {
+      console.log('⏭️ Skipping strike detection - no game or teams');
+      return;
+    }
+
+    console.log('🔍 Strike detection running...');
+    console.log('   Current teams:', game.teams.map(t => `${t.name}: ${t.strikes || 0} strikes`));
 
     // Initialize previousStrikesRef on first load
     const isFirstLoad = Object.keys(previousStrikesRef.current).length === 0;
     if (isFirstLoad) {
+      console.log('📝 First load - initializing previous strikes');
       game.teams.forEach(team => {
         previousStrikesRef.current[team.id] = team.strikes || 0;
+        console.log(`   ${team.name}: ${team.strikes || 0} strikes`);
       });
       return; // Don't trigger animation on first load
     }
 
     // Check if any team's strikes increased
+    let strikeDetected = false;
     game.teams.forEach(team => {
       const previousStrikes = previousStrikesRef.current[team.id] || 0;
       const currentStrikes = team.strikes || 0;
 
+      console.log(`   Checking ${team.name}: previous=${previousStrikes}, current=${currentStrikes}`);
+
       if (currentStrikes > previousStrikes) {
         // Strike was added!
-        console.log(`🎬 Strike animation triggered for ${team.name}: ${previousStrikes} → ${currentStrikes}`);
+        strikeDetected = true;
+        console.log(`🎬 STRIKE DETECTED for ${team.name}: ${previousStrikes} → ${currentStrikes}`);
+        
+        // Play strike sound
+        if (strikeSoundRef.current) {
+          console.log('🔊 Attempting to play strike sound...');
+          strikeSoundRef.current.currentTime = 0;
+          strikeSoundRef.current.play()
+            .then(() => {
+              console.log('✅ Strike sound played successfully!');
+            })
+            .catch(err => {
+              console.error('❌ Strike sound play error:', err.message);
+              console.error('   Note: Browser may block autoplay. User needs to interact with page first.');
+            });
+        } else {
+          console.error('❌ Strike sound ref is null!');
+        }
+        
         setCurrentStrikeCount(currentStrikes);
         setShowStrikeAnimation(true);
 
@@ -219,6 +285,10 @@ function DisplayPageContent() {
       // Update previous strikes
       previousStrikesRef.current[team.id] = currentStrikes;
     });
+
+    if (!strikeDetected) {
+      console.log('   No strikes detected this update');
+    }
   }, [game?.teams]);
 
   if (!gameCode) {
@@ -247,7 +317,7 @@ function DisplayPageContent() {
   console.log('📺 RENDER - hasQuestions:', hasQuestions);
 
   return (
-    <div className="min-h-screen text-white relative overflow-hidden">
+    <div className="min-h-screen text-white relative overflow-hidden" onClick={unlockAudio}>
       {/* Background Image */}
       <div
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"

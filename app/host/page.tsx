@@ -29,6 +29,7 @@ export default function HostPage() {
   const [questionsSelected, setQuestionsSelected] = useState(false);
   const [questionVisible, setQuestionVisible] = useState(false); // Track if question is shown on display
   const [availableQuestionsCount, setAvailableQuestionsCount] = useState(0); // Track available questions
+  const [selectedTeamPerAnswer, setSelectedTeamPerAnswer] = useState<{ [answerIndex: number]: string }>({}); // Track which team is selected for each answer
 
   useEffect(() => {
     // Disable auto-reset for now - message should stay until manually reset
@@ -499,8 +500,16 @@ export default function HostPage() {
     });
   };
 
-  const addPointsToTeam = (teamId: string, points: number) => {
+  const addPointsToTeam = (teamId: string, points: number, answerIndex?: number) => {
     console.log(`💰 Client: Adding ${points} points to team ${teamId}`);
+    
+    // If answerIndex is provided, mark this team as selected for that specific answer
+    if (answerIndex !== undefined) {
+      setSelectedTeamPerAnswer(prev => ({
+        ...prev,
+        [answerIndex]: teamId
+      }));
+    }
     
     // Don't update local state - wait for server response
     // This prevents desync between client and server
@@ -541,6 +550,7 @@ export default function HostPage() {
 
   const nextQuestion = () => {
     setQuestionVisible(false); // Hide question when moving to next
+    setSelectedTeamPerAnswer({}); // Reset team selections for new question
     sendHostAction({
       type: 'next_question'
     });
@@ -1087,27 +1097,6 @@ export default function HostPage() {
                       Add Strike
                     </button>
                   </div>
-                  
-                  <div className="grid grid-cols-3 gap-1">
-                    <button
-                      onClick={() => addPointsToTeam(team.id, 10)}
-                      className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
-                    >
-                      +10
-                    </button>
-                    <button
-                      onClick={() => addPointsToTeam(team.id, 25)}
-                      className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
-                    >
-                      +25
-                    </button>
-                    <button
-                      onClick={() => addPointsToTeam(team.id, 50)}
-                      className="bg-green-600 hover:bg-green-700 px-2 py-1 rounded text-xs"
-                    >
-                      +50
-                    </button>
-                  </div>
                 </div>
               ))}
             </div>
@@ -1190,8 +1179,12 @@ export default function HostPage() {
                           {game.teams.map((team) => (
                             <button
                               key={team.id}
-                              onClick={() => addPointsToTeam(team.id, answer.points)}
-                              className="bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded text-xs"
+                              onClick={() => addPointsToTeam(team.id, answer.points, index)}
+                              className={`px-3 py-1 rounded text-xs font-semibold transition-all ${
+                                selectedTeamPerAnswer[index] === team.id
+                                  ? 'bg-gray-900 text-white border-2 border-green-400'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
                             >
                               {team.name}
                             </button>

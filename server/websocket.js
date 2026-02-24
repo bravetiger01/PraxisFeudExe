@@ -1463,8 +1463,11 @@ wss.on('connection', (ws) => {
                 }
 
                 // Reset strikes and buzzer for new question
-                game.teams.forEach(team => {
+                console.log('🔄 Resetting strikes for all teams...');
+                game.teams.forEach((team, index) => {
+                  console.log(`   Team ${index} (${team.name}) strikes before: ${team.strikes}`);
                   team.strikes = 0;
+                  console.log(`   Team ${index} (${team.name}) strikes after: ${team.strikes}`);
                 });
                 game.buzzerPressed = null;
 
@@ -1476,8 +1479,19 @@ wss.on('connection', (ws) => {
                 // Hide question on display when moving to next question
                 game.questionVisible = false;
 
+                // Mark teams as modified to ensure they save
+                game.markModified('teams');
+
                 // Save and broadcast immediately, then return to prevent general broadcast
                 await game.save();
+                console.log('✅ Game saved with reset strikes');
+
+                // Verify strikes are actually 0 after save
+                const savedGame = await Game.findOne({ code: message.gameCode });
+                console.log('🔍 Verifying saved strikes:');
+                savedGame.teams.forEach((team, index) => {
+                  console.log(`   Team ${index} (${team.name}) strikes in DB: ${team.strikes}`);
+                });
 
                 // Broadcast question change
                 broadcast(message.gameCode, {
@@ -1495,23 +1509,26 @@ wss.on('connection', (ws) => {
 
               case 'show_question':
                 console.log('👁️ Showing question on display');
+                
+                // Reload game from database to get fresh strike data
+                game = await Game.findOne({ code: message.gameCode, isActive: true });
+                
+                // Log current strikes before showing
+                console.log('🔍 Current strikes before showing question:');
+                game.teams.forEach((team, index) => {
+                  console.log(`   Team ${index} (${team.name}) strikes: ${team.strikes}`);
+                });
+                
                 game.questionVisible = true;
                 await game.save();
 
                 console.log('👁️ game.questionVisible after save:', game.questionVisible);
-                const gameObj = game.toObject();
-                console.log('👁️ gameObj.questionVisible:', gameObj.questionVisible);
 
                 broadcast(message.gameCode, {
                   type: 'question_visibility_changed',
                   data: {
                     questionVisible: true
                   }
-                });
-
-                broadcast(message.gameCode, {
-                  type: 'game_update',
-                  data: { game: gameObj }
                 });
 
                 console.log(`Host action completed: ${action.type}`);
